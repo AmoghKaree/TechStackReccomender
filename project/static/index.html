@@ -1,0 +1,638 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>StackAI — Tech Stack Recommender</title>
+  <link rel="icon" type="image/svg+xml" href="/static/favicon.svg"/>
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --blue: #007AFF;
+      --blue-hover: #0071E3;
+      --bg: #08080F;
+      --surface: rgba(255,255,255,0.05);
+      --border: rgba(255,255,255,0.09);
+      --text: #F0F0F5;
+      --sub: rgba(255,255,255,0.42);
+      --font: -apple-system, "SF Pro Display", "Helvetica Neue", sans-serif;
+      --ease: cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    }
+
+    body {
+      font-family: var(--font);
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    /* ── NAV ── */
+    nav {
+      background: rgba(8,8,15,0.75);
+      backdrop-filter: blur(20px) saturate(180%);
+      -webkit-backdrop-filter: blur(20px) saturate(180%);
+      border-bottom: 1px solid var(--border);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      padding: 0 32px;
+      height: 58px;
+      display: flex;
+      align-items: center;
+      animation: fadeIn 0.5s var(--ease) forwards;
+    }
+
+    /* ── SCREENS ── */
+    .screen { display: none; }
+    .screen.active { display: block; }
+
+    /* ── ANIMATIONS ── */
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(24px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to   { opacity: 1; }
+    }
+    @keyframes revealCard {
+      from { opacity: 0; transform: translateY(28px) scale(0.97); filter: blur(4px); }
+      to   { opacity: 1; transform: translateY(0) scale(1); filter: blur(0); }
+    }
+    @keyframes slideUp {
+      from { opacity: 0; transform: translateY(14px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .animate-fade-up  { opacity: 0; animation: fadeUp    0.7s var(--ease) forwards; }
+    .animate-fade-in  { opacity: 0; animation: fadeIn    0.6s var(--ease) forwards; }
+    .animate-card     { opacity: 0; animation: revealCard 0.75s var(--ease) forwards; }
+    .animate-slide-up { opacity: 0; animation: slideUp  0.55s var(--ease) forwards; }
+
+    .delay-0   { animation-delay: 0ms; }
+    .delay-80  { animation-delay: 80ms; }
+    .delay-180 { animation-delay: 180ms; }
+    .delay-420 { animation-delay: 420ms; }
+
+    /* ── INPUT SCREEN ── */
+    #input-screen {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: calc(100vh - 58px);
+      padding: 48px 24px;
+    }
+
+    .hero-title {
+      font-size: clamp(32px, 5vw, 56px);
+      font-weight: 800;
+      letter-spacing: -1.8px;
+      text-align: center;
+      color: #fff;
+      margin-bottom: 12px;
+    }
+    .hero-title em {
+      font-style: normal;
+      background: linear-gradient(95deg, #60A5FA, #3B82F6, #93C5FD);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .hero-sub {
+      font-size: 18px;
+      color: var(--sub);
+      text-align: center;
+      max-width: 500px;
+      line-height: 1.6;
+      margin-bottom: 40px;
+    }
+
+    .input-card {
+      background: rgba(255,255,255,0.04);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 28px;
+      width: 100%;
+      max-width: 640px;
+    }
+
+    textarea {
+      width: 100%;
+      background: rgba(255,255,255,0.05);
+      border: 1.5px solid rgba(255,255,255,0.10);
+      border-radius: 12px;
+      padding: 16px;
+      font-size: 15px;
+      font-family: inherit;
+      resize: vertical;
+      min-height: 140px;
+      line-height: 1.6;
+      color: var(--text);
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    textarea:focus { border-color: var(--blue); }
+    textarea::placeholder { color: rgba(255,255,255,0.25); }
+
+    .input-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-top: 16px;
+      gap: 16px;
+    }
+
+    .mock-toggle {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      color: var(--sub);
+      cursor: pointer;
+      user-select: none;
+    }
+    .toggle-switch {
+      width: 36px; height: 22px;
+      background: rgba(255,255,255,0.12);
+      border-radius: 11px;
+      position: relative;
+      transition: background 0.2s;
+      cursor: pointer;
+    }
+    .toggle-switch.on { background: #34C759; }
+    .toggle-switch::after {
+      content: '';
+      width: 18px; height: 18px;
+      background: #fff;
+      border-radius: 50%;
+      position: absolute;
+      top: 2px; left: 2px;
+      transition: transform 0.2s;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+    }
+    .toggle-switch.on::after { transform: translateX(14px); }
+
+    .btn-primary {
+      background: var(--blue);
+      color: #fff;
+      border: none;
+      border-radius: 12px;
+      padding: 13px 28px;
+      font-size: 15px;
+      font-weight: 600;
+      font-family: inherit;
+      cursor: pointer;
+      transition: background 0.15s, transform 0.1s;
+      white-space: nowrap;
+    }
+    .btn-primary:hover { background: var(--blue-hover); }
+    .btn-primary:active { transform: scale(0.97); }
+    .btn-primary:disabled { background: rgba(255,255,255,0.12); color: var(--sub); cursor: not-allowed; transform: none; }
+
+    /* ── LOADING SCREEN ── */
+    #loading-screen {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: calc(100vh - 58px);
+      padding: 48px 24px;
+    }
+    .loading-title {
+      font-size: 26px;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+      color: #fff;
+      margin-bottom: 8px;
+    }
+    .loading-sub {
+      font-size: 15px;
+      color: var(--sub);
+      margin-bottom: 56px;
+    }
+
+    .pipeline {
+      display: flex;
+      align-items: flex-start;
+      max-width: 680px;
+      width: 100%;
+    }
+    .pipeline-step {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      position: relative;
+    }
+    .pipeline-step:not(:last-child)::after {
+      content: '';
+      position: absolute;
+      top: 20px; left: 50%;
+      width: 100%; height: 1px;
+      background: rgba(255,255,255,0.10);
+      z-index: 0;
+      transition: background 0.4s;
+    }
+    .pipeline-step.done:not(:last-child)::after { background: #34C759; }
+
+    .step-circle {
+      width: 40px; height: 40px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.07);
+      border: 1px solid rgba(255,255,255,0.12);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 15px; font-weight: 700;
+      color: var(--sub);
+      z-index: 1; position: relative;
+      transition: background 0.3s, color 0.3s, box-shadow 0.3s;
+    }
+    .pipeline-step.active .step-circle {
+      background: var(--blue);
+      color: #fff;
+      border-color: transparent;
+      box-shadow: 0 0 0 6px rgba(0,122,255,0.18), 0 0 20px rgba(0,122,255,0.4);
+      animation: pulse 1.2s ease-in-out infinite;
+    }
+    .pipeline-step.done .step-circle {
+      background: #34C759;
+      color: #fff;
+      border-color: transparent;
+    }
+    @keyframes pulse {
+      0%,100% { box-shadow: 0 0 0 6px rgba(0,122,255,0.18), 0 0 20px rgba(0,122,255,0.4); }
+      50%      { box-shadow: 0 0 0 10px rgba(0,122,255,0.10), 0 0 32px rgba(0,122,255,0.55); }
+    }
+    .step-label {
+      font-size: 11px; color: var(--sub);
+      text-align: center; margin-top: 10px;
+      font-weight: 500; padding: 0 4px; line-height: 1.4;
+    }
+    .pipeline-step.active .step-label { color: var(--blue); font-weight: 600; }
+    .pipeline-step.done .step-label { color: #34C759; }
+
+    /* ── RESULTS SCREEN ── */
+    #results-screen {
+      max-width: 920px;
+      margin: 0 auto;
+      padding: 48px 24px 80px;
+    }
+    .results-header {
+      display: flex; align-items: center;
+      justify-content: space-between;
+      margin-bottom: 32px;
+      flex-wrap: wrap; gap: 16px;
+    }
+    .results-header h1 {
+      font-size: 32px; font-weight: 800;
+      letter-spacing: -1px; color: #fff;
+    }
+
+    .btn-secondary {
+      background: rgba(255,255,255,0.07);
+      border: 1px solid var(--border);
+      color: var(--text);
+      border-radius: 10px;
+      padding: 9px 18px;
+      font-size: 14px; font-weight: 600;
+      font-family: inherit; cursor: pointer;
+      transition: background 0.15s;
+    }
+    .btn-secondary:hover { background: rgba(255,255,255,0.11); }
+
+    .section-label {
+      font-size: 11px; font-weight: 800;
+      letter-spacing: 1.2px; text-transform: uppercase;
+      color: var(--blue); margin-bottom: 16px; display: block;
+    }
+
+    /* ── STACK CARDS ── */
+    .stack-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+      gap: 14px;
+      margin-bottom: 40px;
+    }
+    .stack-card {
+      background: rgba(255,255,255,0.04);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 22px;
+      display: flex; flex-direction: column; gap: 12px;
+      transition: border-color 0.2s;
+    }
+    .stack-card:hover { border-color: rgba(255,255,255,0.16); }
+
+    .card-category {
+      font-size: 11px; font-weight: 700;
+      letter-spacing: 1px; text-transform: uppercase;
+      color: var(--sub);
+    }
+    .card-name {
+      font-size: 22px; font-weight: 700;
+      letter-spacing: -0.3px; color: #fff;
+    }
+    .card-badge {
+      display: inline-flex; align-items: center;
+      padding: 3px 10px; border-radius: 20px;
+      font-size: 12px; font-weight: 700;
+      width: fit-content;
+    }
+    .badge-green  { background: rgba(52,199,89,0.15);  color: #4CD964; border: 1px solid rgba(52,199,89,0.25); }
+    .badge-yellow { background: rgba(255,204,0,0.12);  color: #FFD60A; border: 1px solid rgba(255,204,0,0.22); }
+
+    .score-bars { display: flex; flex-direction: column; gap: 7px; }
+    .score-row  { display: flex; align-items: center; gap: 8px; }
+    .score-label { font-size: 11px; color: var(--sub); width: 76px; flex-shrink: 0; }
+    .score-track {
+      flex: 1; height: 3px;
+      background: rgba(255,255,255,0.08);
+      border-radius: 2px; overflow: hidden;
+    }
+    .score-fill {
+      height: 100%; border-radius: 2px;
+      background: var(--blue);
+      transition: width 0.6s ease;
+    }
+    .score-val { font-size: 11px; font-weight: 600; color: var(--text); width: 24px; text-align: right; }
+
+    .runner-up-toggle {
+      font-size: 13px; color: var(--blue);
+      cursor: pointer; background: none; border: none;
+      font-family: inherit; font-weight: 500; padding: 0;
+    }
+    .runner-up-content {
+      display: none; padding-top: 8px;
+      border-top: 1px solid rgba(255,255,255,0.07);
+    }
+    .runner-up-content.open { display: block; }
+    .runner-up-name  { font-size: 14px; font-weight: 600; color: rgba(255,255,255,0.7); margin-bottom: 2px; }
+    .runner-up-score { font-size: 12px; color: var(--sub); }
+
+    /* ── REPORT ── */
+    .report-card {
+      background: rgba(255,255,255,0.03);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 32px;
+    }
+    .report-card h1, .report-card h2, .report-card h3 {
+      letter-spacing: -0.3px; margin-bottom: 12px; margin-top: 28px; color: #fff;
+    }
+    .report-card h1:first-child, .report-card h2:first-child { margin-top: 0; }
+    .report-card h1 { font-size: 24px; font-weight: 700; }
+    .report-card h2 { font-size: 19px; font-weight: 700; }
+    .report-card h3 { font-size: 16px; font-weight: 600; }
+    .report-card p  { font-size: 15px; line-height: 1.75; color: rgba(255,255,255,0.6); margin-bottom: 12px; }
+    .report-card ul, .report-card ol { padding-left: 22px; margin-bottom: 12px; }
+    .report-card li { font-size: 15px; line-height: 1.65; color: rgba(255,255,255,0.6); margin-bottom: 4px; }
+    .report-card strong { color: rgba(255,255,255,0.9); }
+    .report-card code {
+      background: rgba(255,255,255,0.08);
+      padding: 2px 7px; border-radius: 5px;
+      font-size: 13px; font-family: "SF Mono", "Menlo", monospace;
+      color: #93C5FD;
+    }
+    .report-card pre {
+      background: rgba(0,0,0,0.4);
+      border: 1px solid var(--border);
+      border-radius: 10px; padding: 16px;
+      overflow-x: auto; margin-bottom: 12px;
+    }
+    .report-card pre code { background: none; color: #E2E8F0; padding: 0; font-size: 13px; }
+    .report-card hr { border: none; border-top: 1px solid rgba(255,255,255,0.07); margin: 24px 0; }
+    .report-card blockquote {
+      border-left: 2px solid var(--blue);
+      padding-left: 16px; color: var(--sub); margin-bottom: 12px;
+    }
+
+    @media (max-width: 600px) {
+      .pipeline { gap: 0; }
+      .step-label { font-size: 10px; }
+      .stack-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<nav>
+  <a href="/" style="display:flex;align-items:center;gap:10px;text-decoration:none">
+    <svg width="26" height="26" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+      <defs><linearGradient id="ng" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stop-color="#007AFF"/><stop offset="100%" stop-color="#0040CC"/>
+      </linearGradient></defs>
+      <rect width="100" height="100" rx="22" fill="url(#ng)"/>
+      <rect x="16" y="26" width="68" height="14" rx="7" fill="white" opacity="0.95"/>
+      <rect x="16" y="44" width="68" height="14" rx="7" fill="white" opacity="0.70"/>
+      <rect x="16" y="62" width="68" height="14" rx="7" fill="white" opacity="0.45"/>
+    </svg>
+    <span style="font-size:16px;font-weight:700;letter-spacing:-0.3px;color:#fff">StackAI</span>
+  </a>
+</nav>
+
+<!-- INPUT -->
+<div id="input-screen" class="screen active">
+  <h1 class="hero-title animate-fade-up delay-0">Find your <em>perfect</em><br>tech stack.</h1>
+  <p class="hero-sub animate-fade-up delay-80">Describe your project and our AI pipeline will research, score, and recommend the ideal technology choices for you.</p>
+  <div class="input-card animate-card delay-180">
+    <textarea id="project-input" placeholder="E.g. I want to build a SaaS dashboard for tracking fitness metrics. Solo developer, free tier preferred, targeting a few hundred users initially."></textarea>
+    <div class="input-footer animate-slide-up delay-420">
+      <label class="mock-toggle" title="Use mock responses — no API key needed">
+        <div class="toggle-switch" id="mock-toggle" onclick="toggleMock()"></div>
+        Mock mode
+      </label>
+      <button class="btn-primary" id="submit-btn" onclick="handleSubmit()">Analyze →</button>
+    </div>
+  </div>
+</div>
+
+<!-- LOADING -->
+<div id="loading-screen" class="screen">
+  <div class="loading-title">Analyzing your project...</div>
+  <p class="loading-sub">AI agents are researching and evaluating your stack</p>
+  <div class="pipeline">
+    <div class="pipeline-step" id="step-0">
+      <div class="step-circle">1</div>
+      <div class="step-label">Parse<br>Requirements</div>
+    </div>
+    <div class="pipeline-step" id="step-1">
+      <div class="step-circle">2</div>
+      <div class="step-label">Research<br>Options</div>
+    </div>
+    <div class="pipeline-step" id="step-2">
+      <div class="step-circle">3</div>
+      <div class="step-label">Evaluate<br>&amp; Score</div>
+    </div>
+    <div class="pipeline-step" id="step-3">
+      <div class="step-circle">4</div>
+      <div class="step-label">Generate<br>Report</div>
+    </div>
+  </div>
+</div>
+
+<!-- RESULTS -->
+<div id="results-screen" class="screen">
+  <div class="results-header">
+    <h1>Recommended Stack</h1>
+    <button class="btn-secondary" onclick="startOver()">← Start Over</button>
+  </div>
+
+  <span class="section-label">Top Picks by Category</span>
+  <div class="stack-grid" id="stack-grid"></div>
+
+  <span class="section-label" style="margin-top: 8px;">Full Report</span>
+  <div class="report-card" id="report-content"></div>
+</div>
+
+<script>
+  const SCORE_LABELS = ['requirements_fit','learning_curve','scalability','cost','community_support'];
+  const SCORE_NAMES  = ['Fit','Learning','Scale','Cost','Community'];
+
+  let mockMode = false;
+  let stepTimer = null;
+
+  function toggleMock() {
+    mockMode = !mockMode;
+    document.getElementById('mock-toggle').classList.toggle('on', mockMode);
+  }
+
+  function showScreen(id) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    const el = document.getElementById(id);
+    el.classList.add('active');
+    el.style.display = '';
+  }
+
+  function stopPipelineAnimation() { clearTimeout(stepTimer); }
+
+  function finishPipelineAnimation() {
+    stopPipelineAnimation();
+    document.querySelectorAll('.pipeline-step').forEach(s => {
+      s.classList.remove('active');
+      s.classList.add('done');
+      s.querySelector('.step-circle').textContent = '✓';
+    });
+  }
+
+  async function handleSubmit() {
+    const desc = document.getElementById('project-input').value.trim();
+    if (!desc) { document.getElementById('project-input').focus(); return; }
+
+    document.getElementById('submit-btn').disabled = true;
+    showScreen('loading-screen');
+
+    const steps = document.querySelectorAll('.pipeline-step');
+    steps.forEach(s => { s.classList.remove('active','done'); });
+
+    const stepMs = [1800, 3500, 3000, 0];
+    function advanceStep(i) {
+      if (i >= steps.length) return;
+      if (i > 0) {
+        steps[i-1].classList.remove('active');
+        steps[i-1].classList.add('done');
+        steps[i-1].querySelector('.step-circle').textContent = '✓';
+      }
+      steps[i].classList.add('active');
+      if (stepMs[i] > 0) stepTimer = setTimeout(() => advanceStep(i+1), stepMs[i]);
+    }
+    advanceStep(0);
+
+    try {
+      const res = await fetch('/api/recommend', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ description: desc, mock: mockMode }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.detail || `Server error ${res.status}`);
+      }
+      const data = await res.json();
+      stopPipelineAnimation();
+      finishPipelineAnimation();
+      setTimeout(() => renderResults(data), 400);
+    } catch (e) {
+      stopPipelineAnimation();
+      document.getElementById('submit-btn').disabled = false;
+      showScreen('input-screen');
+      alert('Error: ' + e.message);
+    }
+  }
+
+  function renderResults(data) {
+    renderStackGrid(data.scores);
+    renderReport(data.final_report);
+    showScreen('results-screen');
+    window.scrollTo(0, 0);
+  }
+
+  function renderStackGrid(scores) {
+    const grid = document.getElementById('stack-grid');
+    grid.innerHTML = '';
+    if (!scores || !Object.keys(scores).length) {
+      grid.innerHTML = '<p style="color:var(--sub)">No scores available.</p>';
+      return;
+    }
+    for (const [category, options] of Object.entries(scores)) {
+      if (!options?.length) continue;
+      const sorted = [...options].sort((a,b) => (b.average||0) - (a.average||0));
+      const top = sorted[0];
+      const runnerUp = sorted[1];
+      const avg = top.average || 0;
+
+      const card = document.createElement('div');
+      card.className = 'stack-card';
+
+      const badgeClass = avg >= 7.0 ? 'badge-green' : 'badge-yellow';
+      const barsHtml = SCORE_LABELS.map((key, i) => {
+        const val = top[key] || 0;
+        return `<div class="score-row">
+          <span class="score-label">${SCORE_NAMES[i]}</span>
+          <div class="score-track"><div class="score-fill" style="width:${(val/10*100).toFixed(0)}%"></div></div>
+          <span class="score-val">${val}</span>
+        </div>`;
+      }).join('');
+
+      const rid = 'runner-' + category.replace(/\s+/g,'_');
+      const runnerHtml = runnerUp ? `
+        <button class="runner-up-toggle" onclick="toggleRunnerUp('${rid}')">Runner-up ›</button>
+        <div class="runner-up-content" id="${rid}">
+          <div class="runner-up-name">${runnerUp.name||'N/A'}</div>
+          <div class="runner-up-score">Avg: ${(runnerUp.average||0).toFixed(1)}/10</div>
+        </div>` : '';
+
+      card.innerHTML = `
+        <div class="card-category">${category}</div>
+        <div class="card-name">${top.name||'N/A'}</div>
+        <span class="card-badge ${badgeClass}">${avg.toFixed(1)}/10</span>
+        <div class="score-bars">${barsHtml}</div>
+        ${runnerHtml}
+      `;
+      grid.appendChild(card);
+    }
+  }
+
+  function toggleRunnerUp(id) {
+    document.getElementById(id)?.classList.toggle('open');
+  }
+
+  function renderReport(markdown) {
+    const el = document.getElementById('report-content');
+    if (!markdown) { el.textContent = 'No report generated.'; return; }
+    el.innerHTML = marked.parse(markdown);
+  }
+
+  function startOver() {
+    document.getElementById('submit-btn').disabled = false;
+    document.getElementById('stack-grid').innerHTML = '';
+    document.getElementById('report-content').innerHTML = '';
+    const animated = document.querySelectorAll('#input-screen [class*="animate-"]');
+    animated.forEach(el => { el.style.animation = 'none'; el.offsetHeight; el.style.animation = ''; });
+    showScreen('input-screen');
+  }
+</script>
+</body>
+</html>
