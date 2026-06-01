@@ -4,7 +4,6 @@ StackAI is a multi-agent AI pipeline that takes a plain-English project descript
 
 Built with FastAPI + Gemini AI. Runs entirely on Gemini's free tier.
 
-https://techstackai.netlify.app/
 
 ---
 
