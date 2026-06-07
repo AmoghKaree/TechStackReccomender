@@ -2,7 +2,7 @@
 
 StackAI is a multi-agent AI pipeline that takes a plain-English project description and returns a scored, justified technology recommendation across five stack categories: **Frontend, Backend, Database, Hosting, and Auth**.
 
-Built with FastAPI + Gemini AI. Runs entirely on Gemini's free tier.
+Built with FastAPI + Groq AI. Runs entirely on Groq's free tier.
 
 
 ---
@@ -46,18 +46,18 @@ cd project
 pip install -r requirements.txt
 ```
 
-### 3. Get a free Gemini API key
+### 3. Get a free Groq API key
 
-1. Go to [https://aistudio.google.com/apikey](https://aistudio.google.com/apikey)
+1. Go to [https://console.groq.com/keys](https://console.groq.com/keys)
 2. Click **Create API key** (no credit card required)
-3. Copy the key — it starts with `AIza...`
+3. Copy the key — it starts with `gsk_...`
 
 ### 4. Add your key
 
 Create `project/.env`:
 
 ```env
-GEMINI_API_KEY=AIza...your-key-here
+GROQ_API_KEY=gsk_...your-key-here
 ```
 
 ### 5. Run the server
@@ -82,7 +82,7 @@ TechStackReccomender/
 │   │   ├── evaluator.py      # Scores options on 5 dimensions
 │   │   └── reporter.py       # Generates the final markdown report
 │   ├── utils/
-│   │   ├── claude_client.py  # Gemini API wrapper (call_claude / call_claude_json)
+│   │   ├── claude_client.py  # Groq API wrapper (call_claude / call_claude_json)
 │   │   └── mock_data.py      # Pre-saved responses for offline testing
 │   ├── static/
 │   │   ├── home.html         # Marketing landing page
@@ -147,7 +147,7 @@ python main.py --mock
 | Layer | Technology |
 |---|---|
 | Backend | Python + FastAPI |
-| AI | Google Gemini 2.5 Flash (`google-genai`) |
+| AI | Groq (`groq`) |
 | Frontend | Vanilla HTML/CSS/JS |
 | Server | Uvicorn |
 
